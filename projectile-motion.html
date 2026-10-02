@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>การเคลื่อนที่แบบโพรเจกไทล์</title>
+<!--
+สื่อจำลอง ม.4 การเคลื่อนที่แบบโพรเจกไทล์
+vx = v0 cosθ, vy = v0 sinθ − gt, x = vx t, y = (v0 sinθ)t − ½gt²
+g = 9.8 m/s², ไม่คิดแรงต้านอากาศ, ยิงและตกบนพื้นราบระดับเดียวกัน
+-->
+<style>
+  :root {
+    --bg: #efe6d6;
+    --ink: #1c2826;
+    --muted: #5d6b66;
+    --card: #fffdf8;
+    --line: #e3d6c4;
+    --green: #1c6b45;
+    --green-dark: #14382c;
+    --blue: #1e5aa8;
+    --amber: #a85b12;
+    --red: #c94b38;
+    --shadow: 0 10px 28px rgba(70, 48, 20, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 420px at 10% -10%, rgba(255, 255, 255, 0.7), transparent 50%),
+      var(--bg);
+    font-family: "Leelawadee UI", Tahoma, "Segoe UI", sans-serif;
+    line-height: 1.45;
+  }
+
+  header {
+    background: var(--green-dark);
+    color: #f6f1e6;
+  }
+
+  .wrap {
+    width: min(1120px, calc(100% - 28px));
+    margin: 0 auto;
+  }
+
+  header .wrap {
+    padding: 18px 0 16px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .level {
+    margin: 4px 0 0;
+    color: #d7c7a4;
+    font-size: 14px;
+  }
+
+  .goal {
+    margin: 16px auto 0;
+    padding: 12px 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .goal h2, .card h2, .graph-card h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+  }
+
+  .goal p, .note, .assumptions {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px 0 28px;
+  }
+
+  .card, .graph-card, .scene-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .controls { padding: 14px; }
+
+  .mis {
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .mis li {
+    position: relative;
+    margin: 0 0 6px;
+    padding-left: 16px;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+
+  .mis li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--amber);
+  }
+
+  .field { display: block; margin: 0 0 12px; }
+
+  .field-top, .field-scale, .btn-row, .legend, .graph-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .field-top span, .field-scale {
+    font-size: 14px;
+  }
+
+  .field-top strong {
+    color: var(--green-dark);
+    font-size: 15px;
+  }
+
+  .field-scale {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    margin: 6px 0 2px;
+    accent-color: var(--green);
+  }
+
+  .presets {
+    display: flex;
+    gap: 6px;
+    margin: -4px 0 12px;
+  }
+
+  .presets button, .btn-row button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .presets button {
+    flex: 1;
+    border: 1px solid var(--line);
+    background: #f7f1e6;
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 4px 0;
+    font-size: 13px;
+  }
+
+  .presets button.is-on {
+    background: var(--green-dark);
+    color: #f6f1e6;
+    border-color: var(--green-dark);
+  }
+
+  .btn-row { margin: 4px 0 10px; }
+
+  .btn-row button {
+    flex: 1;
+    border: 0;
+    border-radius: 10px;
+    padding: 9px 6px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  #play { background: var(--green); color: white; }
+  #pause { background: #efe0c4; color: #6a4a12; }
+  #reset { background: #efe8e4; color: var(--ink); }
+
+  button:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  button:focus-visible, input:focus-visible {
+    outline: 3px solid var(--green);
+    outline-offset: 2px;
+  }
+
+  .status {
+    display: inline-block;
+    margin: 0 0 10px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .is-ready { background: #e5f2ea; color: var(--green); }
+  .is-run { background: var(--green); color: white; }
+  .is-pause { background: #f8e7cf; color: var(--amber); }
+  .is-done { background: #e4eef8; color: var(--blue); }
+
+  .observe {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #f8f3e8;
+    border: 1px solid #eadcbe;
+  }
+
+  .observe h2 { font-size: 15px; }
+
+  .observe p {
+    margin: 0 0 6px;
+    font-size: 13.5px;
+  }
+
+  .observe p:last-child { margin-bottom: 0; }
+
+  .stage { min-width: 0; }
+
+  .scene-card { padding: 10px 10px 8px; }
+
+  #scene, #graph {
+    display: block;
+    width: 100%;
+  }
+
+  #scene { height: 390px; border-radius: 12px; }
+
+  .caption {
+    margin: 8px 4px 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .readout, .equation {
+    padding: 12px 14px;
+  }
+
+  .nums, .mass-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .nums th, .mass-table th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 3px 8px 3px 0;
+    vertical-align: top;
+  }
+
+  .nums td, .mass-table td {
+    text-align: right;
+    padding: 3px 0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  .mass-table { margin-top: 8px; }
+
+  .mass-table caption {
+    caption-side: top;
+    text-align: left;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 0 0 4px;
+  }
+
+  .eq {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 14.5px;
+  }
+
+  .eq li { margin: 2px 0; }
+
+  .assumptions { margin-top: 8px; font-size: 13px; }
+
+  .graph-card { margin-top: 16px; padding: 12px 12px 10px; }
+
+  .graph-head { align-items: flex-start; margin-bottom: 6px; }
+
+  .graph-head p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .legend { flex-wrap: wrap; justify-content: flex-end; font-size: 13px; }
+
+  .swatch {
+    display: inline-block;
+    width: 18px;
+    height: 4px;
+    margin: 0 4px 0 10px;
+    border-radius: 99px;
+    vertical-align: middle;
+  }
+
+  .swatch.vx { background: var(--green); }
+  .swatch.vy { background: var(--blue); }
+  .swatch.v { background: var(--amber); }
+
+  #graph {
+    height: 230px;
+    background: #fbfaf6;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 860px) {
+    main, .info-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 22px; }
+    #scene { height: 320px; }
+    .graph-head { display: block; }
+    .legend { justify-content: flex-start; margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>การเคลื่อนที่แบบโพรเจกไทล์</h1>
+    <p class="level">มัธยมศึกษาปีที่ 4 · หน่วยเอสไอ · ไม่คิดแรงต้านอากาศ</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="goal">
+    <h2>เป้าหมายการเรียนรู้</h2>
+    <p>เห็นว่าการเคลื่อนที่แนวระดับและแนวดิ่งเกิดพร้อมกันแต่อิสระจากกัน เวลาในอากาศขึ้นกับความเร็วต้นแนวดิ่ง มุม 45° ให้ระยะตามแนวระดับไกลสุดบนพื้นราบ และที่จุดสูงสุดวัตถุไม่ได้หยุดนิ่ง</p>
+  </section>
+
+  <main>
+    <aside class="card controls">
+      <h2>จุดที่มักเข้าใจคลาดเคลื่อน</h2>
+      <ul class="mis">
+        <li>มวลมากกว่า จะลอยนานกว่าหรือไปได้ไกลกว่า</li>
+        <li>ยิ่งตั้งมุมสูง ระยะตามแนวระดับยิ่งมาก</li>
+        <li>ที่จุดสูงสุด ความเร็วเป็นศูนย์ทั้งก้อน</li>
+        <li>ทิศของความเร็วคงที่เท่ากับมุมยิงตลอดทาง</li>
+      </ul>
+
+      <label class="field">
+        <span class="field-top"><span>ความเร็วต้น v₀</span><strong id="v0Out">20 m/s</strong></span>
+        <input id="v0" type="range" min="5" max="40" step="1" value="20" aria-label="ความเร็วต้น">
+        <span class="field-scale"><span>5</span><span>40 m/s</span></span>
+      </label>
+
+      <label class="field">
+        <span class="field-top"><span>มุมยิง θ</span><strong id="thetaOut">45°</strong></span>
+        <input id="theta" type="range" min="10" max="80" step="1" value="45" aria-label="มุมยิง">
+        <span class="field-scale"><span>10°</span><span>80°</span></span>
+      </label>
+      <div class="presets" role="group" aria-label="มุมตัวอย่าง">
+        <button type="button" class="js-preset" data-angle="30">30°</button>
+        <button type="button" class="js-preset" data-angle="45">45°</button>
+        <button type="button" class="js-preset" data-angle="60">60°</button>
+      </div>
+
+      <label class="field">
+        <span class="field-top"><span>มวล m</span><strong id="massOut">1.0 kg</strong></span>
+        <input id="mass" type="range" min="0.2" max="5" step="0.1" value="1" aria-label="มวล">
+        <span class="field-scale"><span>0.2</span><span>5.0 kg</span></span>
+      </label>
+
+      <div class="btn-row">
+        <button type="button" id="play">เริ่ม</button>
+        <button type="button" id="pause" disabled>หยุดชั่วคราว</button>
+        <button type="button" id="reset">ตั้งค่าใหม่</button>
+      </div>
+      <div id="status" class="status is-ready">พร้อมเริ่ม</div>
+
+      <div class="observe">
+        <h2>สิ่งที่ควรสังเกต</h2>
+        <p id="obs1"></p>
+        <p id="obs2"></p>
+        <p id="obs3"></p>
+        <p id="obs4"></p>
+      </div>
+    </aside>
+
+    <section class="stage">
+      <div class="scene-card">
+        <canvas id="scene" width="800" height="390" aria-label="ภาพการเคลื่อนที่ของวัตถุ"></canvas>
+        <p class="caption">ลูกศรสีเขียวคือ vx สีน้ำเงินคือ vy สีอำพันคือความเร็วลัพธ์ ขนาดของลูกเปลี่ยนตามมวล แต่จุดศูนย์กลางเคลื่อนที่ตามสมการซึ่งไม่มีมวล ตัวเลขบนแกนเป็นเมตร และสเกลของภาพปรับให้วิถีอยู่ในกรอบ</p>
+      </div>
+
+      <div class="info-grid">
+        <div class="card readout">
+          <h2>ค่าที่คำนวณได้</h2>
+          <table class="nums">
+            <tbody>
+              <tr><th>เวลาที่ผ่านไป t</th><td id="valT"></td></tr>
+              <tr><th>ตำแหน่ง x</th><td id="valX"></td></tr>
+              <tr><th>ความสูง y</th><td id="valY"></td></tr>
+              <tr><th>ความเร็วแนวระดับ vx</th><td id="valVx"></td></tr>
+              <tr><th>ความเร็วแนวดิ่ง vy</th><td id="valVy"></td></tr>
+              <tr><th>อัตราเร็ว v</th><td id="valV"></td></tr>
+              <tr><th>ทิศของความเร็ว</th><td id="valDir"></td></tr>
+              <tr><th>เวลาในอากาศทั้งหมด</th><td id="valFlight"></td></tr>
+              <tr><th>ความสูงสูงสุด</th><td id="valH"></td></tr>
+              <tr><th>ระยะตามแนวระดับ</th><td id="valR"></td></tr>
+              <tr><th id="pairLabel">ระยะที่มุมคู่</th><td id="valRPair"></td></tr>
+              <tr><th>ระยะที่มุม 45°</th><td id="valR45"></td></tr>
+            </tbody>
+          </table>
+          <table class="mass-table">
+            <caption>ตำแหน่งเวลาเดียวกันนี้ ถ้าเปลี่ยนเฉพาะมวล</caption>
+            <tbody>
+              <tr><th>0.2 kg</th><td id="valM02"></td></tr>
+              <tr><th>มวลที่ตั้งไว้</th><td id="valMUser"></td></tr>
+              <tr><th>5.0 kg</th><td id="valM5"></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card equation">
+          <h2>สมการและเงื่อนไข</h2>
+          <ul class="eq">
+            <li>v<sub>x</sub> = v₀ cos θ</li>
+            <li>v<sub>y</sub> = v₀ sin θ − g t</li>
+            <li>x = (v₀ cos θ) t</li>
+            <li>y = (v₀ sin θ) t − ½ g t²</li>
+            <li>R = v₀² sin 2θ / g</li>
+            <li>H = (v₀ sin θ)² / (2g)</li>
+          </ul>
+          <p class="assumptions">ค่าคงที่ g = 9.8 m/s² ชี้ลงตลอดทาง ยิงจากพื้นราบ y = 0 และตกที่ระดับเดียวกัน ไม่คิดแรงต้านอากาศ ดังนั้นมวลไม่ปรากฏในสมการตำแหน่งและความเร็ว ค่าบนหน้าจอทั้งหมดมาจากสมการชุดนี้</p>
+        </div>
+      </div>
+
+      <div class="graph-card">
+        <div class="graph-head">
+          <div>
+            <h2>กราฟความเร็วเทียบกับเวลา</h2>
+            <p>แกนตั้งคือความเร็ว (m/s) แกนนอนคือเวลา (s) ใช้สเกลเดียวกัน ความชันของ vy เท่ากับ −g และอัตราเร็ว v ต่ำสุดที่จุดสูงสุดแต่ไม่เป็นศูนย์</p>
+          </div>
+          <div class="legend">
+            <span><i class="swatch vx"></i>vx</span>
+            <span><i class="swatch vy"></i>vy</span>
+            <span><i class="swatch v"></i>v</span>
+          </div>
+        </div>
+        <canvas id="graph" width="800" height="230" aria-label="กราฟความเร็วแนวระดับและความเร็วแนวดิ่งเทียบกับเวลา"></canvas>
+      </div>
+    </section>
+  </main>
+</div>
+
+<noscript><p class="wrap">กรุณาเปิดใช้จาวาสคริปต์เพื่อใช้งานสื่อจำลองนี้</p></noscript>
+
+<script>
+(function () {
+  var G = 9.8;
+  var TIME_SCALE = 0.5;
+  var VX = "#1c6b45";
+  var VY = "#1e5aa8";
+  var VV = "#a85b12";
+
+  var els = {
+    scene: document.getElementById("scene"),
+    graph: document.getElementById("graph"),
+    v0: document.getElementById("v0"),
+    theta: document.getElementById("theta"),
+    mass: document.getElementById("mass"),
+    v0Out: document.getElementById("v0Out"),
+    thetaOut: document.getElementById("thetaOut"),
+    massOut: document.getElementById("massOut"),
+    play: document.getElementById("play"),
+    pause: document.getElementById("pause"),
+    reset: document.getElementById("reset"),
+    status: document.getElementById("status"),
+    obs1: document.getElementById("obs1"),
+    obs2: document.getElementById("obs2"),
+    obs3: document.getElementById("obs3"),
+    obs4: document.getElementById("obs4"),
+    valT: document.getElementById("valT"),
+    valX: document.getElementById("valX"),
+    valY: document.getElementById("valY"),
+    valVx: document.getElementById("valVx"),
+    valVy: document.getElementById("valVy"),
+    valV: document.getElementById("valV"),
+    valDir: document.getElementById("valDir"),
+    valFlight: document.getElementById("valFlight"),
+    valH: document.getElementById("valH"),
+    valR: document.getElementById("valR"),
+    pairLabel: document.getElementById("pairLabel"),
+    valRPair: document.getElementById("valRPair"),
+    valR45: document.getElementById("valR45"),
+    valM02: document.getElementById("valM02"),
+    valMUser: document.getElementById("valMUser"),
+    valM5: document.getElementById("valM5")
+  };
+
+  var sim = { v0: 20, theta: 45, mass: 1, t: 0, playing: false, lastTs: 0 };
+
+  function rad(deg) { return deg * Math.PI / 180; }
+
+  function fmt(n, d) {
+    if (!isFinite(n)) return "—";
+    var m = Math.pow(10, d);
+    var v = Math.round(n * m) / m;
+    if (Object.is(v, -0)) v = 0;
+    return v.toFixed(d);
+  }
+
+  function flightTime(v0, theta) {
+    return (2 * v0 * Math.sin(rad(theta))) / G;
+  }
+
+  function rangeOf(v0, theta) {
+    return (v0 * v0 * Math.sin(rad(2 * theta))) / G;
+  }
+
+  function heightMax(v0, theta) {
+    var vy0 = v0 * Math.sin(rad(theta));
+    return (vy0 * vy0) / (2 * G);
+  }
+
+  function stateAt(t, v0, theta) {
+    var a = rad(theta);
+    var vx = v0 * Math.cos(a);
+    var vy0 = v0 * Math.sin(a);
+    var vy = vy0 - G * t;
+    var x = vx * t;
+    var y = vy0 * t - 0.5 * G * t * t;
+    return { x: x, y: y, vx: vx, vy: vy, speed: Math.hypot(vx, vy) };
+  }
+
+  function sample() {
+    var T = flightTime(sim.v0, sim.theta);
+    var t = Math.min(Math.max(sim.t, 0), T);
+    var s = stateAt(t, sim.v0, sim.theta);
+    if (t >= T - 1e-9) {
+      s.y = 0;
+      s.x = rangeOf(sim.v0, sim.theta);
+      s.vy = -sim.v0 * Math.sin(rad(sim.theta));
+      s.speed = Math.hypot(s.vx, s.vy);
+    }
+    s.t = t;
+    s.T = T;
+    return s;
+  }
+
+  function fit(canvas) {
+    var rect = canvas.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(10, rect.width);
+    var h = Math.max(10, rect.height);
+    var bw = Math.round(w * dpr);
+    var bh = Math.round(h * dpr);
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw;
+      canvas.height = bh;
+    }
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    return { ctx: ctx, w: w, h: h };
+  }
+
+  function gridStep(span) {
+    var raw = span / 6;
+    var pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-9))));
+    var n = raw / pow;
+    var nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+    return nice * pow;
+  }
+
+  function niceMax(v) {
+    var raw = Math.max(v * 1.12, 1);
+    var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    var n = raw / pow;
+    var nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+    return nice * pow;
+  }
+
+  function worldTo(x, y, scale, origin) {
+    return { x: origin.x + x * scale, y: origin.y - y * scale };
+  }
+
+  function drawArrow(ctx, x1, y1, x2, y2, color) {
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+    var len = Math.hypot(dx, dy);
+    if (len < 8) return;
+    var ang = Math.atan2(dy, dx);
+    var head = Math.min(12, len * 0.35);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2 - Math.cos(ang) * head * 0.55, y2 - Math.sin(ang) * head * 0.55);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(ang - 0.38), y2 - head * Math.sin(ang - 0.38));
+    ctx.lineTo(x2 - head * Math.cos(ang + 0.38), y2 - head * Math.sin(ang + 0.38));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawScene(ctx, w, h) {
+    var padL = 52;
+    var padR = 18;
+    var padT = 24;
+    var padB = 36;
+    var xSpan = Math.max(sim.v0 * sim.v0 / G * 1.22, 8);
+    var ySpan = Math.max(sim.v0 * sim.v0 / (2 * G) * 1.3, 6);
+    var scale = Math.min((w - padL - padR) / xSpan, (h - padT - padB) / ySpan);
+    var origin = { x: padL, y: h - padB };
+    var viewW = (w - padL - padR) / scale;
+    var viewH = (h - padT - padB) / scale;
+
+    var sky = ctx.createLinearGradient(0, 0, 0, origin.y);
+    sky.addColorStop(0, "#b7d4ec");
+    sky.addColorStop(1, "#f6f1e6");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, origin.y);
+    ctx.fillStyle = "#d9c7a8";
+    ctx.fillRect(0, origin.y, w, h - origin.y);
+    ctx.fillStyle = "#7d9d6c";
+    ctx.fillRect(0, origin.y, w, 7);
+
+    var step = gridStep(Math.max(viewW, viewH));
+    ctx.lineWidth = 1;
+    ctx.font = "12px Leelawadee UI, Tahoma, sans-serif";
+    ctx.fillStyle = "#5c6b66";
+    ctx.strokeStyle = "rgba(28, 40, 38, 0.12)";
+    var x;
+    for (x = 0; x <= viewW + step * 0.02; x += step) {
+      var px = worldTo(x, 0, scale, origin);
+      ctx.beginPath();
+      ctx.moveTo(px.x, origin.y);
+      ctx.lineTo(px.x, padT);
+      ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(String(Math.round(x)), px.x, origin.y + 10);
+    }
+    var y;
+    for (y = step; y <= viewH + step * 0.02; y += step) {
+      var py = worldTo(0, y, scale, origin);
+      if (py.y < padT - 2) break;
+      ctx.beginPath();
+      ctx.moveTo(origin.x, py.y);
+      ctx.lineTo(w - padR, py.y);
+      ctx.stroke();
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(Math.round(y)), origin.x - 6, py.y);
+    }
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("y (m)", origin.x + 6, padT + 2);
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("x (m)", w - 10, origin.y - 6);
+
+    var s = sample();
+    var T = s.T;
+    var steps = 100;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    var i;
+    for (i = 0; i <= steps; i++) {
+      var st = stateAt((T * i) / steps, sim.v0, sim.theta);
+      var p = worldTo(st.x, Math.max(0, st.y), scale, origin);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.strokeStyle = "rgba(28, 40, 38, 0.35)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    if (s.t > 0) {
+      ctx.beginPath();
+      var traveled = Math.max(2, Math.round(steps * s.t / T));
+      for (i = 0; i <= traveled; i++) {
+        var tt = (s.t * i) / traveled;
+        var st2 = stateAt(tt, sim.v0, sim.theta);
+        var p2 = worldTo(st2.x, Math.max(0, st2.y), scale, origin);
+        if (i === 0) ctx.moveTo(p2.x, p2.y);
+        else ctx.lineTo(p2.x, p2.y);
+      }
+      ctx.strokeStyle = "#c94b38";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    var apex = stateAt(T / 2, sim.v0, sim.theta);
+    var ap = worldTo(apex.x, apex.y, scale, origin);
+    ctx.fillStyle = "#243038";
+    ctx.beginPath();
+    ctx.arc(ap.x, ap.y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = "12px Leelawadee UI, Tahoma, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("จุดสูงสุด", ap.x, ap.y - 7);
+
+    var land = worldTo(rangeOf(sim.v0, sim.theta), 0, scale, origin);
+    var mark45 = worldTo(sim.v0 * sim.v0 / G, 0, scale, origin);
+    var sameSpot = Math.abs(land.x - mark45.x) < 48;
+    drawFlag(ctx, land.x, land.y, "#c94b38", sameSpot ? "จุดตก · 45°" : "จุดตก");
+    if (!sameSpot) drawFlag(ctx, mark45.x, mark45.y, "#1c6b45", "45°");
+
+    ctx.save();
+    ctx.translate(origin.x, origin.y);
+    ctx.rotate(-rad(sim.theta));
+    ctx.fillStyle = "#2a3840";
+    ctx.fillRect(0, -5, 32, 10);
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(origin.x, origin.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = "#243038";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.strokeStyle = "#243038";
+    ctx.lineWidth = 1.5;
+    ctx.arc(origin.x, origin.y, 26, 0, -rad(sim.theta), true);
+    ctx.stroke();
+    var midAng = -rad(sim.theta) / 2;
+    ctx.fillStyle = "#1c2826";
+    ctx.font = "bold 13px Leelawadee UI, Tahoma, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(sim.theta) + "°", origin.x + Math.cos(midAng) * 34 + 4, origin.y + Math.sin(midAng) * 34);
+
+    var ball = worldTo(s.x, Math.max(0, s.y), scale, origin);
+    ctx.save();
+    ctx.setLineDash([3, 4]);
+    ctx.strokeStyle = "rgba(201, 75, 56, 0.55)";
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.moveTo(ball.x, ball.y);
+    ctx.lineTo(ball.x, origin.y);
+    ctx.stroke();
+    ctx.restore();
+
+    var radius = 7 + ((sim.mass - 0.2) / 4.8) * 10;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#e15a3a";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(ball.x - radius * 0.28, ball.y - radius * 0.32, Math.max(2, radius * 0.28), 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = "#1c2826";
+    ctx.fill();
+
+    var pxPerSpeed = Math.min(scale * 0.55, 120 / sim.v0);
+    var vxEnd = { x: ball.x + s.vx * pxPerSpeed, y: ball.y };
+    var vyEnd = { x: ball.x, y: ball.y - s.vy * pxPerSpeed };
+    var vEnd = { x: ball.x + s.vx * pxPerSpeed, y: ball.y - s.vy * pxPerSpeed };
+    if (Math.hypot(s.vx, s.vy) * pxPerSpeed > 16) {
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = "rgba(28, 40, 38, 0.35)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(vxEnd.x, vxEnd.y);
+      ctx.lineTo(vEnd.x, vEnd.y);
+      ctx.moveTo(vyEnd.x, vyEnd.y);
+      ctx.lineTo(vEnd.x, vEnd.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+    drawArrow(ctx, ball.x, ball.y, vxEnd.x, vxEnd.y, VX);
+    drawArrow(ctx, ball.x, ball.y, vyEnd.x, vyEnd.y, VY);
+    drawArrow(ctx, ball.x, ball.y, vEnd.x, vEnd.y, VV);
+  }
+
+  function drawFlag(ctx, x, y, color, label) {
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y - 26);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y - 26);
+    ctx.lineTo(x + 14, y - 20);
+    ctx.lineTo(x, y - 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.font = "12px Leelawadee UI, Tahoma, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(label, x, y - 30);
+  }
+
+  function drawGraph(ctx, w, h) {
+    var pad = { l: 58, r: 16, t: 16, b: 34 };
+    var pw = w - pad.l - pad.r;
+    var ph = h - pad.t - pad.b;
+    if (pw < 20 || ph < 20) return;
+
+    var T = Math.max(flightTime(sim.v0, sim.theta), 0.001);
+    var vTop = niceMax(sim.v0);
+    var s = sample();
+
+    function X(t) { return pad.l + (t / T) * pw; }
+    function Y(v) { return pad.t + ((vTop - v) / (2 * vTop)) * ph; }
+
+    ctx.fillStyle = "#fbfaf6";
+    ctx.fillRect(0, 0, w, h);
+    ctx.font = "12px Leelawadee UI, Tahoma, sans-serif";
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(28, 40, 38, 0.1)";
+    ctx.fillStyle = "#5c6b66";
+
+    var vi;
+    for (vi = 0; vi <= 4; vi++) {
+      var vv = vTop - (2 * vTop * vi) / 4;
+      var yy = Y(vv);
+      ctx.beginPath();
+      ctx.moveTo(pad.l, yy);
+      ctx.lineTo(w - pad.r, yy);
+      ctx.stroke();
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText(fmt(vv, Math.abs(vv - Math.round(vv)) < 1e-6 ? 0 : 1), pad.l - 8, yy);
+    }
+    var ti;
+    for (ti = 0; ti <= 4; ti++) {
+      var tt = (T * ti) / 4;
+      var xx = X(tt);
+      ctx.beginPath();
+      ctx.moveTo(xx, pad.t);
+      ctx.lineTo(xx, pad.t + ph);
+      ctx.stroke();
+      ctx.textAlign = ti === 0 ? "left" : ti === 4 ? "right" : "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(fmt(tt, T >= 8 ? 1 : 2), xx, pad.t + ph + 6);
+    }
+
+    ctx.strokeStyle = "rgba(28, 40, 38, 0.45)";
+    ctx.beginPath();
+    ctx.moveTo(pad.l, Y(0));
+    ctx.lineTo(w - pad.r, Y(0));
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(16, pad.t + ph / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#5c6b66";
+    ctx.fillText("ความเร็ว (m/s)", 0, 0);
+    ctx.restore();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = VV;
+    ctx.beginPath();
+    var k;
+    for (k = 0; k <= 80; k++) {
+      var tg = (T * k) / 80;
+      var st = stateAt(tg, sim.v0, sim.theta);
+      var gx = X(tg);
+      var gy = Y(Math.hypot(st.vx, st.vy));
+      if (k === 0) ctx.moveTo(gx, gy);
+      else ctx.lineTo(gx, gy);
+    }
+    ctx.stroke();
+
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = VX;
+    ctx.beginPath();
+    ctx.moveTo(X(0), Y(s.vx));
+    ctx.lineTo(X(T), Y(s.vx));
+    ctx.stroke();
+
+    ctx.strokeStyle = VY;
+    ctx.beginPath();
+    for (k = 0; k <= 80; k++) {
+      tg = (T * k) / 80;
+      st = stateAt(tg, sim.v0, sim.theta);
+      gx = X(tg);
+      gy = Y(st.vy);
+      if (k === 0) ctx.moveTo(gx, gy);
+      else ctx.lineTo(gx, gy);
+    }
+    ctx.stroke();
+
+    var nowX = X(s.t);
+    ctx.strokeStyle = "rgba(201, 75, 56, 0.85)";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(nowX, pad.t);
+    ctx.lineTo(nowX, pad.t + ph);
+    ctx.stroke();
+
+    function dot(v, color) {
+      ctx.beginPath();
+      ctx.arc(nowX, Y(v), 4, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+    dot(s.vx, VX);
+    dot(s.vy, VY);
+    dot(s.speed, VV);
+
+    var apexX = X(T / 2);
+    ctx.fillStyle = "#243038";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("จุดสูงสุด", apexX, Y(0) - 6);
+  }
+
+  function directionText(vx, vy) {
+    var deg = Math.atan2(vy, vx) * 180 / Math.PI;
+    if (Math.abs(deg) < 0.05) return "0.0° ขนานพื้น";
+    var way = deg > 0 ? "ชี้ขึ้น" : "ชี้ลง";
+    return fmt(Math.abs(deg), 1) + "° " + way;
+  }
+
+  function insights(s) {
+    var pair = 90 - sim.theta;
+    var rNow = rangeOf(sim.v0, sim.theta);
+    var r45 = sim.v0 * sim.v0 / G;
+    var line1;
+    if (Math.abs(sim.theta - 45) < 0.5) {
+      line1 = "มุม 45° ให้ระยะตามแนวระดับไกลสุดสำหรับความเร็วต้นนี้ คือ " + fmt(r45, 2) + " m";
+    } else {
+      line1 = "มุม " + sim.theta + "° ได้ระยะเท่ากับมุม " + pair + "° คือ " + fmt(rNow, 2) + " m น้อยกว่ามุม 45°";
+    }
+    var line2 = "vx = " + fmt(s.vx, 2) + " m/s คงที่ตลอดทาง เพราะไม่มีแรงในแนวระดับ";
+    var line3 = "มวล " + fmt(sim.mass, 1) + " kg ไม่ได้อยู่ในสมการ ระยะและเวลาจึงไม่เปลี่ยนเมื่อปรับมวล";
+    var line4;
+    if (s.t <= 0.0001) {
+      line4 = "ขณะเริ่มยิง ทิศความเร็วเท่ากับมุมยิง กดเริ่มแล้วดูทิศนี้เปลี่ยน และที่จุดสูงสุดอัตราเร็วไม่เป็นศูนย์";
+    } else if (Math.abs(s.vy) < 0.35 && s.t < s.T - 0.05) {
+      line4 = "ใกล้จุดสูงสุด vy = 0 แต่อัตราเร็วยังเท่ากับ vx คือ " + fmt(s.speed, 2) + " m/s วัตถุไม่ได้หยุดนิ่ง";
+    } else {
+      line4 = "ทิศความเร็วตอนนี้ " + directionText(s.vx, s.vy) + " ไม่เท่ากับมุมยิง " + sim.theta + "° ตลอดทาง";
+    }
+    return [line1, line2, line3, line4];
+  }
+
+  function updateButtons() {
+    var T = flightTime(sim.v0, sim.theta);
+    els.play.disabled = sim.playing;
+    els.pause.disabled = !sim.playing;
+    var label = "พร้อมเริ่ม";
+    var cls = "is-ready";
+    if (sim.playing) {
+      label = "กำลังเคลื่อนที่";
+      cls = "is-run";
+    } else if (sim.t >= T - 1e-4 && sim.t > 0) {
+      label = "ตกถึงพื้นแล้ว";
+      cls = "is-done";
+    } else if (sim.t > 0) {
+      label = "หยุดชั่วคราว";
+      cls = "is-pause";
+    }
+    els.status.textContent = label;
+    els.status.className = "status " + cls;
+  }
+
+  function updatePanel() {
+    var s = sample();
+    var pair = 90 - sim.theta;
+    var pos = "x = " + fmt(s.x, 2) + " m, y = " + fmt(s.y, 2) + " m";
+    var notes = insights(s);
+    els.obs1.textContent = notes[0];
+    els.obs2.textContent = notes[1];
+    els.obs3.textContent = notes[2];
+    els.obs4.textContent = notes[3];
+    els.valT.textContent = fmt(s.t, 2) + " s";
+    els.valX.textContent = fmt(s.x, 2) + " m";
+    els.valY.textContent = fmt(s.y, 2) + " m";
+    els.valVx.textContent = fmt(s.vx, 2) + " m/s";
+    els.valVy.textContent = fmt(s.vy, 2) + " m/s";
+    els.valV.textContent = fmt(s.speed, 2) + " m/s";
+    els.valDir.textContent = directionText(s.vx, s.vy);
+    els.valFlight.textContent = fmt(s.T, 2) + " s";
+    els.valH.textContent = fmt(heightMax(sim.v0, sim.theta), 2) + " m";
+    els.valR.textContent = fmt(rangeOf(sim.v0, sim.theta), 2) + " m";
+    els.pairLabel.textContent = "ระยะที่มุม " + pair + "°";
+    els.valRPair.textContent = fmt(rangeOf(sim.v0, pair), 2) + " m";
+    els.valR45.textContent = fmt(sim.v0 * sim.v0 / G, 2) + " m";
+    els.valM02.textContent = pos;
+    els.valMUser.textContent = pos;
+    els.valM5.textContent = pos;
+  }
+
+  function updatePresetStates() {
+    var buttons = document.querySelectorAll(".js-preset");
+    var i;
+    for (i = 0; i < buttons.length; i++) {
+      var on = Number(buttons[i].getAttribute("data-angle")) === sim.theta;
+      buttons[i].classList.toggle("is-on", on);
+      buttons[i].setAttribute("aria-pressed", on ? "true" : "false");
+    }
+  }
+
+  function readControls(resetTime) {
+    sim.v0 = Number(els.v0.value);
+    sim.theta = Number(els.theta.value);
+    sim.mass = Number(els.mass.value);
+    if (resetTime) {
+      sim.t = 0;
+      sim.playing = false;
+    }
+    els.v0Out.textContent = fmt(sim.v0, 0) + " m/s";
+    els.thetaOut.textContent = fmt(sim.theta, 0) + "°";
+    els.massOut.textContent = fmt(sim.mass, 1) + " kg";
+    updatePresetStates();
+    updateButtons();
+    render();
+  }
+
+  function render() {
+    var scene = fit(els.scene);
+    var graph = fit(els.graph);
+    drawScene(scene.ctx, scene.w, scene.h);
+    drawGraph(graph.ctx, graph.w, graph.h);
+    updatePanel();
+  }
+
+  els.v0.addEventListener("input", function () { readControls(true); });
+  els.theta.addEventListener("input", function () { readControls(true); });
+  els.mass.addEventListener("input", function () { readControls(true); });
+
+  var presets = document.querySelectorAll(".js-preset");
+  var p;
+  for (p = 0; p < presets.length; p++) {
+    presets[p].addEventListener("click", function () {
+      els.theta.value = this.getAttribute("data-angle");
+      readControls(true);
+    });
+  }
+
+  els.play.addEventListener("click", function () {
+    var T = flightTime(sim.v0, sim.theta);
+    if (sim.t >= T - 1e-4) sim.t = 0;
+    sim.playing = true;
+    sim.lastTs = 0;
+    updateButtons();
+  });
+
+  els.pause.addEventListener("click", function () {
+    sim.playing = false;
+    updateButtons();
+  });
+
+  els.reset.addEventListener("click", function () {
+    els.v0.value = "20";
+    els.theta.value = "45";
+    els.mass.value = "1";
+    readControls(true);
+  });
+
+  function tick(now) {
+    if (!sim.lastTs) sim.lastTs = now;
+    var realDt = Math.min(0.05, (now - sim.lastTs) / 1000);
+    sim.lastTs = now;
+    if (sim.playing) {
+      var T = flightTime(sim.v0, sim.theta);
+      sim.t += realDt * TIME_SCALE;
+      if (sim.t >= T) {
+        sim.t = T;
+        sim.playing = false;
+      }
+    }
+    updateButtons();
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  readControls(true);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
